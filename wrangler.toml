@@ -8,4 +8,4 @@ pages_build_output_dir = "public"
 [[d1_databases]]
 binding = "DB"
 database_name = "med-reminder"
-database_id = "YOUR_DATABASE_ID_HERE"
+database_id = "08d9b81a-00d7-481b-9cfb-825799ba9808"

@@ -178,11 +178,6 @@ body{font-family:'Noto Sans SC',system-ui,sans-serif;background:var(--bg);color:
     </div>
     <div id="login-err" style="display:none" class="error-msg"></div>
     <button class="btn btn-primary btn-full" id="login-btn" onclick="doLogin()">登 录</button>
-    <div style="margin-top:18px;font-size:11px;color:var(--text3);text-align:center;line-height:2">
-      管理员：admin / admin1234<br>
-      护理员：caregiver1 / care1234<br>
-      患者：patient1 / 1234
-    </div>
   </div>
 </div>
 
@@ -215,7 +210,10 @@ body{font-family:'Noto Sans SC',system-ui,sans-serif;background:var(--bg);color:
       <div class="sb-footer">
         <div class="sb-user" id="sb-user"></div>
         <div class="sb-role" id="sb-role"></div>
-        <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px" onclick="doLogout()">退出</button>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px" onclick="showChangePassword()">修改密码</button>
+          <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px" onclick="doLogout()">退出</button>
+        </div>
       </div>
     </div>
 
@@ -695,7 +693,7 @@ async function loadUsers() {
         <div class="u-name">${u.display_name}<span class="rbadge ${rb[u.role]}">${rl[u.role]}</span></div>
         <div class="u-meta">@${u.username}${acc ? ' · 关联：' + acc : ''}</div>
       </div>
-      ${u.id !== CU.id ? `<button class="btn btn-danger" style="font-size:12px;padding:5px 12px" onclick="delUser(${u.id})">删除</button>` : ''}
+      ${u.id !== CU.id ? `<div style='display:flex;gap:6px'><button class='btn btn-ghost' style='font-size:12px;padding:5px 12px' onclick='adminChangePassword(${u.id},"${u.display_name}")'>改密码</button><button class='btn btn-danger' style='font-size:12px;padding:5px 12px' onclick='delUser(${u.id})'>删除</button></div>` : '<button class="btn btn-ghost" style="font-size:12px;padding:5px 12px" onclick="showChangePassword()">修改我的密码</button>'}
     </div>`;
   }).join('');
   document.getElementById('users-content').innerHTML = `<div class="card">${rows}</div>`;
@@ -752,6 +750,82 @@ async function createUser() {
 async function delUser(id) {
   if (!confirm('确认删除该用户？')) return;
   await DELETE(`/users/${id}`); await loadUsers();
+}
+
+// ── Change Password ────────────────────────────────────────────
+function showChangePassword(targetId, targetName) {
+  // If no targetId, changing own password
+  const id = targetId || CU.id;
+  const name = targetName || CU.display_name;
+  const isSelf = (id === CU.id);
+  const isAdmin = CU.role === 'admin';
+
+  const old = document.getElementById('_pwdModal'); if (old) old.remove();
+  const modal = document.createElement('div');
+  modal.id = '_pwdModal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000';
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:16px;padding:32px;width:360px;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
+      <div style="font-size:17px;font-weight:700;margin-bottom:4px">修改密码</div>
+      <div style="font-size:13px;color:#64748b;margin-bottom:20px">${name}</div>
+      ${(isSelf || !isAdmin) ? `
+      <div class="form-group">
+        <label>当前密码</label>
+        <input id="_pwd_current" type="password" placeholder="请输入当前密码">
+      </div>` : `<div style="font-size:12px;color:#f59e0b;margin-bottom:16px;padding:8px 12px;background:#fef3c7;border-radius:8px">管理员模式：无需验证当前密码</div>`}
+      <div class="form-group">
+        <label>新密码</label>
+        <input id="_pwd_new" type="password" placeholder="至少4位">
+      </div>
+      <div class="form-group">
+        <label>确认新密码</label>
+        <input id="_pwd_confirm" type="password" placeholder="再次输入新密码">
+      </div>
+      <div id="_pwd_err" style="display:none;color:#ef4444;font-size:13px;margin-bottom:12px;padding:8px;background:#fee2e2;border-radius:8px"></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary" style="flex:1" onclick="submitChangePassword(${id}, ${isSelf || !isAdmin})">确认修改</button>
+        <button class="btn btn-secondary" onclick="document.getElementById('_pwdModal').remove()">取消</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  // Close on backdrop click
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  // Focus first field
+  setTimeout(() => (document.getElementById('_pwd_current') || document.getElementById('_pwd_new'))?.focus(), 50);
+}
+
+function adminChangePassword(id, name) {
+  showChangePassword(id, name);
+}
+
+async function submitChangePassword(targetId, requireCurrent) {
+  const current = document.getElementById('_pwd_current')?.value.trim() || '';
+  const newPwd = document.getElementById('_pwd_new').value.trim();
+  const confirm = document.getElementById('_pwd_confirm').value.trim();
+  const errEl = document.getElementById('_pwd_err');
+  errEl.style.display = 'none';
+
+  const showErr = msg => { errEl.textContent = msg; errEl.style.display = 'block'; };
+
+  if (requireCurrent && !current) return showErr('请输入当前密码');
+  if (!newPwd) return showErr('请输入新密码');
+  if (newPwd.length < 4) return showErr('新密码至少需要4位');
+  if (newPwd !== confirm) return showErr('两次输入的密码不一致');
+
+  const body = { new_pin: newPwd };
+  if (requireCurrent) body.current_pin = current;
+
+  const res = await PUT(`/users/${targetId}/password`, body);
+  if (res?.error) return showErr(res.error);
+
+  document.getElementById('_pwdModal').remove();
+  // If changed own password, force re-login with new credentials
+  if (targetId === CU.id) {
+    alert('密码修改成功，请重新登录');
+    doLogout();
+  } else {
+    alert('密码修改成功');
+  }
 }
 </script>
 </body>

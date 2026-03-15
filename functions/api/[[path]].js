@@ -255,5 +255,23 @@ export async function onRequest(context) {
     return json({ ok: true });
   }
 
+  // ── CHANGE PASSWORD ───────────────────────────────────────────
+  const pwdM = path.match(/^\/api\/users\/(\d+)\/password$/);
+  if (pwdM && method === 'PUT') {
+    const uid = parseInt(pwdM[1]);
+    // Users can change their own password; admins can change anyone's
+    if (user.id !== uid && user.role !== 'admin') return err('权限不足', 403);
+    const { current_pin, new_pin } = await request.json();
+    if (!new_pin || new_pin.length < 4) return err('新密码至少需要4位', 400);
+    // Non-admins must verify their current password first
+    if (user.role !== 'admin') {
+      const check = await DB.prepare('SELECT id FROM users WHERE id=? AND pin_hash=?')
+        .bind(uid, current_pin).first();
+      if (!check) return err('当前密码错误', 401);
+    }
+    await DB.prepare('UPDATE users SET pin_hash=? WHERE id=?').bind(new_pin, uid).run();
+    return json({ ok: true });
+  }
+
   return err('接口不存在', 404);
 }

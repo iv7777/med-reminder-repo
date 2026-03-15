@@ -1,0 +1,11 @@
+name = "med-reminder"
+compatibility_date = "2024-01-01"
+pages_build_output_dir = "public"
+
+# D1 database binding
+# After creating your database with `npx wrangler d1 create med-reminder`,
+# replace YOUR_DATABASE_ID_HERE with the UUID from the command output.
+[[d1_databases]]
+binding = "DB"
+database_name = "med-reminder"
+database_id = "YOUR_DATABASE_ID_HERE"

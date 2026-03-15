@@ -3,13 +3,15 @@
   "version": "1.0.0",
   "description": "Family medication reminder — Cloudflare Pages + D1",
   "scripts": {
-    "dev": "wrangler pages dev public --d1=DB",
-    "deploy": "wrangler pages deploy public --project-name=med-reminder",
+    "dev":       "wrangler pages dev public --d1=DB",
     "db:schema": "wrangler d1 execute med-reminder --file=schema.sql",
-    "db:seed": "wrangler d1 execute med-reminder --file=seed.sql",
-    "db:reset": "wrangler d1 execute med-reminder --file=schema.sql && wrangler d1 execute med-reminder --file=seed.sql"
+    "db:seed":   "wrangler d1 execute med-reminder --file=seed.sql",
+    "db:reset":  "wrangler d1 execute med-reminder --file=schema.sql && wrangler d1 execute med-reminder --file=seed.sql"
   },
   "devDependencies": {
-    "wrangler": "^3.0.0"
+    "wrangler": "^4.0.0"
+  },
+  "notes": {
+    "deployment": "Git-push deploys via Cloudflare Pages dashboard. NO build command needed — leave it blank. Build output directory = public."
   }
 }

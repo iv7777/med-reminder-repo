@@ -53,21 +53,24 @@ npx wrangler d1 execute med-reminder --file=seed.sql
 
 1. Push this repo to GitHub / GitLab
 2. Go to **Cloudflare Dashboard → Workers & Pages → Create → Pages**
-3. Connect your Git repository
-4. Build settings:
-   - **Framework preset**: None
-   - **Build command**: *(leave empty)*
-   - **Build output directory**: `public`
-5. After first deploy, go to **Settings → Functions → D1 database bindings**
-6. Add: Variable name = `DB`, select your `med-reminder` database
-7. Redeploy to activate the binding
+3. Select **"Connect to Git"** and choose your repository
+4. In **Build settings** — set these exactly:
 
-### 4. Alternative: deploy via wrangler CLI
+   | Setting | Value |
+   |---------|-------|
+   | Framework preset | `None` |
+   | **Build command** | *(leave completely blank)* |
+   | **Build output directory** | `public` |
 
-```bash
-npm install -g wrangler
-wrangler pages deploy public --project-name=med-reminder
-```
+   > ⚠️ Do NOT enter `wrangler deploy` or `npm run deploy` as the build command.
+   > This is a static site — no build step is needed. Cloudflare serves `public/`
+   > directly and picks up `functions/` automatically.
+
+5. Click **Save and Deploy** — the first deploy will succeed
+6. Go to your Pages project → **Settings → Functions → D1 database bindings**
+7. Click **Add binding**: Variable name = `DB`, select `med-reminder` database
+8. Go to **Deployments** → click **Retry deployment** (or push any commit)
+9. Done — live at `https://med-reminder.pages.dev`
 
 ## Default Accounts
 
